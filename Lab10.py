@@ -1,58 +1,44 @@
 import cv2
-import numpy as np
+from ultralytics import YOLO
 
-def detect_objects(frame):
-    # Convert the frame to HSV color space
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+# Load the YOLOv8 model
+model = YOLO('yolov8n.pt')
 
-    # Define range of a color to detect (example: blue color)
-    lower_blue = np.array([110,50,50])
-    upper_blue = np.array([130,255,255])
+# Open the video file
+video_path = "traffic6.mp4"
+cap = cv2.VideoCapture(video_path)
 
-    # Threshold the HSV image to get only blue colors
-    mask = cv2.inRange(hsv, lower_blue, upper_blue)
-
-    # Find contours in the mask
-    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    detected_objects = []
-    for contour in contours:
-        if cv2.contourArea(contour) > 100:  # Optionally, filter out small contours
-            x, y, w, h = cv2.boundingRect(contour)
-            detected_objects.append((x, y, w, h))
-
-    return detected_objects
-
-# Load your video
-cap = cv2.VideoCapture("C:\\Users\\rossh\\Lab10\\traffic3.mp4")
-
-# Loop through each frame
+# Loop through the video frames
 while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
+    # Read a frame from the video
+    success, frame = cap.read()
+
+    if success:
+        # Optional: Resize the frame for better viewing
+        frame = cv2.resize(frame, (800, 600))  # Resize to 800x600 or any size that fits your screen
+
+        # Run YOLOv8 tracking on the frame, persisting tracks between frames
+        results = model.track(frame, persist=True)
+
+        # Visualize the results on the frame
+        annotated_frame = results[0].plot()
+
+        # Optional: Resize the annotated frame to match the resized frame
+        annotated_frame = cv2.resize(annotated_frame, (800, 600))
+
+        # Display the annotated frame
+        cv2.imshow("YOLOv8 Tracking", annotated_frame)
+
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+    else:
+        # Break the loop if the end of the video is reached
         break
 
-    # Detect objects in the frame
-    detected_objects = detect_objects(frame)
-
-    # Placeholder for object tracking - define this function based on your tracking needs
-    # tracked_objects = track_objects(detected_objects)
-
-    # Drawing detected objects on the frame
-    for (x, y, w, h) in detected_objects:
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
-
-    # Display the frame
-    cv2.imshow('Frame', frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# Release the video capture object and close all frames
+# Release the video capture object and close the display window
 cap.release()
 cv2.destroyAllWindows()
-
-
 
 
 
