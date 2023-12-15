@@ -1,12 +1,25 @@
 import cv2
 from ultralytics import YOLO
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
+
 
 # Load the YOLOv8 model
 model = YOLO('yolov8n.pt')
 
 # Open the video file
-video_path = "traffic6.mp4"
+video_path = "cars1.mp4"
 cap = cv2.VideoCapture(video_path)
+
+# Get video properties for the output file
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = cap.get(cv2.CAP_PROP_FPS)
+
+# Define the codec and create a VideoWriter object to save the output
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 'mp4v' for .mp4 format
+out = cv2.VideoWriter('output_cars1.mp4', fourcc, fps, (frame_width, frame_height))
 
 # Loop through the video frames
 while cap.isOpened():
@@ -14,19 +27,16 @@ while cap.isOpened():
     success, frame = cap.read()
 
     if success:
-        # Optional: Resize the frame for better viewing
-        frame = cv2.resize(frame, (800, 600))  # Resize to 800x600 or any size that fits your screen
-
         # Run YOLOv8 tracking on the frame, persisting tracks between frames
         results = model.track(frame, persist=True)
 
         # Visualize the results on the frame
         annotated_frame = results[0].plot()
 
-        # Optional: Resize the annotated frame to match the resized frame
-        annotated_frame = cv2.resize(annotated_frame, (800, 600))
+        # Write the frame to the output video file
+        out.write(annotated_frame)
 
-        # Display the annotated frame
+        # Display the annotated frame (optional)
         cv2.imshow("YOLOv8 Tracking", annotated_frame)
 
         # Break the loop if 'q' is pressed
@@ -36,9 +46,11 @@ while cap.isOpened():
         # Break the loop if the end of the video is reached
         break
 
-# Release the video capture object and close the display window
+# Release the video capture and video write objects, and close all OpenCV windows
 cap.release()
+out.release()
 cv2.destroyAllWindows()
+
 
 
 
